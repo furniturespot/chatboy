@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ZenChat – AI Assistant</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #f6f8fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      width: 95%;
+      max-width: 500px;
+      height: 95vh;
+      background: white;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      border-radius: 15px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      background: #d3e5f5;
+      padding: 1rem;
+      text-align: center;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .chat-header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      color: #336699;
+    }
+
+    .chat-box {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .message {
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      max-width: 80%;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+
+    .user {
+      align-self: flex-end;
+      background: #e0f7fa;
+      color: #006064;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background: #f1f8e9;
+      color: #33691e;
+    }
+
+    .chat-form {
+      display: flex;
+      border-top: 1px solid #ccc;
+    }
+
+    .chat-form input {
+      flex: 1;
+      padding: 1rem;
+      border: none;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .chat-form button {
+      background: #4caf50;
+      color: white;
+      border: none;
+      padding: 0 1.5rem;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .chat-form button:hover {
+      background: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <header class="chat-header">
+      <h1>ZenChat</h1>
+      <p>Your calm AI assistant ✨</p>
+    </header>
+
+    <main id="chat-box" class="chat-box"></main>
+
+    <form id="chat-form" class="chat-form">
+      <input type="text" id="user-input" placeholder="Type your message..." required />
+      <button type="submit">➤</button>
+    </form>
+  </div>
+
+  <script>
+    const chatForm = document.getElementById("chat-form");
+    const chatBox = document.getElementById("chat-box");
+    const userInput = document.getElementById("user-input");
+
+    // WARNING: In production, DO NOT expose your API key in client-side code!
+    const API_KEY = "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";
+
+    let messages = [
+      {
+        role: "system",
+        content: "You are a helpful, relaxed AI assistant named ZenChat."
+      }
+    ];
+
+    function addMessage(content, sender = "user") {
+      const msgDiv = document.createElement("div");
+      msgDiv.className = `message ${sender}`;
+      msgDiv.textContent = content;
+      chatBox.appendChild(msgDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = userInput.value.trim();
+      if (!input) return;
+
+      addMessage(input, "user");
+      userInput.value = "";
+
+      addMessage("Typing...", "bot");
+      messages.push({ role: "user", content: input });
+
+    try {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-4",
+      messages,
+      temperature: 0.7
+    })
+  });
+
+  const data = await res.json();
+  console.log("API Response:", data);
+
+  if (data.error) {
+    const loadingMsg = document.querySelector(".message.bot:last-child");
+    loadingMsg.textContent = `Error: ${data.error.message}`;
+    return;
+  }
+
+  const reply = data.choices?.[0]?.message?.content?.trim();
+  if (!reply) {
+    const loadingMsg = document.querySelector(".message.bot:last-child");
+    loadingMsg.textContent = "No reply received.";
+    return;
+  }
+
+  messages.push({ role: "assistant", content: reply });
+
+  const loadingMsg = document.querySelector(".message.bot:last-child");
+  loadingMsg.textContent = reply;
+
+} catch (err) {
+  console.error("Fetch Error:", err);
+  const loadingMsg = document.querySelector(".message.bot:last-child");
+  loadingMsg.textContent = "Network error.";
+}
+
+
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+  </script>
+</body>
+</html>
